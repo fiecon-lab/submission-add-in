@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIECON NICE Submissions</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" type="text/css" href="src/styles.css">
+</head>
+<body>
+    <div id="app">
+        <div>
+            <p>Confidential data:</p>
+            <select id="confidential">
+                    </select>
+        </div>
+        
+        <div style="margin-top: 15px;">
+            <p>Blinding style:</p>
+            <select id="blind">
+                    </select>
+        </div>
+        
+        <div style="margin-top: 15px;">
+            <button id="run" class="ms-Button ms-Button--primary">
+                        <span class="ms-Button-label">Blind</span>
+                    </button>
+            <button id="abbrev" class="ms-Button">
+                        <span class="ms-Button-label">Find abbreviations</span>
+                    </button>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    
+    <!-- Custom script -->
+    <script type="text/javascript" src="src/script.js"></script>
+</body>
+</html>

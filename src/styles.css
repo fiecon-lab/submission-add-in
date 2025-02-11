@@ -1,0 +1,8 @@
+select {
+    width: 100%;
+}
+
+.ms-Button {
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
