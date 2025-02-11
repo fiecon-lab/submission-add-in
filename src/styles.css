@@ -1,8 +1,14 @@
+#app {
+    padding: 1rem;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
 select {
     width: 100%;
 }
 
-.ms-Button {
+.btn {
     margin-right: 8px;
     margin-bottom: 8px;
 }
