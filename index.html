@@ -16,25 +16,49 @@
 </head>
 <body>
     <div id="app" class="container">
-        <div class="mb-3">
-            <label for="confidential" class="form-label">Confidential data:</label>
-            <select id="confidential" class="form-select">
-            </select>
+        <div class="row">
+            <div class="mb-4">
+                <h4>Find abbreviations</h4>
+                <p class="mb-1">Find abbreviations across the whole document together with their definitions.</p>
+                <p class="diclaimer">A table of abbreviations with be added under the "Abbreviations" headline or at the end of the document if the headline is not present.</p>
+            </div>
+
+            <div>
+                <input type="checkbox" id="abbrev-checkbox" checked>
+                <label for="abbrev-checkbox">Add missing definitions using Cria</label>
+            </div>
+
+            <div class="mt-4">
+                <button id="abbrev" class="btn btn-primary">
+                    <span>Find abbreviations</span>
+                </button>
+            </div>
         </div>
-        
-        <div class="mb-3">
-            <label for="blind" class="form-label">Blinding style:</label>
-            <select id="blind" class="form-select">
-            </select>
-        </div>
-        
-        <div class="mb-3">
-            <button id="run" class="btn btn-primary">
-                <span>Blind</span>
-            </button>
-            <button id="abbrev" class="btn btn-secondary">
-                <span>Find abbreviations</span>
-            </button>
+        <hr class="my-4">
+        <div class="row">
+            <div class="mb-4">
+                <h4>Blind document</h4>
+                <p class="mb-1">Select style used for the confidential data and the style used for the blinding.</p>
+                <p class="diclaimer">If you are using the FIECON template you should use the default selection. Blinding will automatically create a new document with the blinded text.</p>
+            </div>
+
+            <div class="col-md-6">
+                <label for="confidential" class="form-label">Confidential data:</label>
+                <select id="confidential" class="form-select">
+                </select>
+            </div>
+            
+            <div class="col-md-6">
+                <label for="blind" class="form-label">Blinding style:</label>
+                <select id="blind" class="form-select">
+                </select>
+            </div>
+            
+            <div class="mt-4">
+                <button id="blind-btn" class="btn btn-primary">
+                    <span>Create blinded copy</span>
+                </button>
+            </div>
         </div>
     </div>
 

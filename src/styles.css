@@ -12,3 +12,8 @@ select {
     margin-right: 8px;
     margin-bottom: 8px;
 }
+
+.diclaimer {
+    font-size: 0.8rem;
+    color: #6c757d;
+}

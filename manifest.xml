@@ -2,15 +2,15 @@
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>00000000-0000-0000-0000-000000000000</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>[Provider name here]</ProviderName>
+  <ProviderName>FIECON Labs</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="[Add-in name]"/>
-  <Description DefaultValue="[Add-in description]"/>
+  <DisplayName DefaultValue="FIECON Submission Assistant"/>
+  <Description DefaultValue="A document preparation tool for NICE submissions with blinding and abbreviation features"/>
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>
-  <SupportUrl DefaultValue="[Support URL]"/>
+  <SupportUrl DefaultValue="https://fiecon-lab.github.io/submission-add-in/"/>
   <AppDomains>
-    <AppDomain>[Domain URL]</AppDomain>
+    <AppDomain>https://fiecon-lab.github.io</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Document"/>
@@ -21,7 +21,7 @@
     </Sets>
   </Requirements>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://localhost:3000/index.html"/>
+    <SourceLocation DefaultValue="https://fiecon-lab.github.io/submission-add-in/index.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
@@ -75,17 +75,17 @@
         <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/assets/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://fiecon-lab.github.io/submission-add-in/"/>
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/index.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with [Add-in name]!"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="[Group name]"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="[Button name]"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with Submission Assistant!"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="FIECON"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Submission Assistant"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="[Add-in name] add-in loaded successfully. Go to the HOME tab and click the '[Button name]' button to get started."/>
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open [Add-in name]"/>
+        <bt:String id="GetStarted.Description" DefaultValue="Submission Assistant add-in loaded successfully. Go to the HOME tab and click the 'Submission Assistant' button to start preparing your manuscript."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open Submission Assistant to prepare your manuscript"/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
