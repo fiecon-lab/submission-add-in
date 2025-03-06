@@ -1,5 +1,4 @@
 Office.onReady(() => {
-    // Register the function to run when the document is loaded
     Word.run(async (context) => {
     try {
         // Get the styles from the document
@@ -56,6 +55,9 @@ $("#blind-btn").on("click", () => tryCatch(blind));
 
 async function blind() {
   await Word.run(async (context) => {
+    let old_style = $('#confidential').val();
+    let new_style = $('#blind').val();
+
     console.log("Starting style update...");
     let foundCount = 0;
 
@@ -67,10 +69,10 @@ async function blind() {
 
     // Process each paragraph
     for (let para of paragraphs.items) {
-      if (para.style === "NICE CIC") {
+      if (para.style === old_style) {
         foundCount++;
         // Change paragraph style
-        para.style = "NICE blind";
+        para.style = new_style;
         // Replace text with dashes
         const text = para.text;
         const dashes = "-".repeat(text.trim().length);
@@ -82,9 +84,9 @@ async function blind() {
         await context.sync();
         
         for (let result of searchResults.items) {
-          if (result.style === "NICE CIC" || result.font.style === "NICE CIC") {
+          if (result.style === old_style || result.font.style === old_style) {
             foundCount++;
-            result.style = "NICE blind";
+            result.style = new_style;
             const dashes = "-".repeat(result.text.trim().length);
             result.insertText(dashes, Word.InsertLocation.replace);
           }
@@ -94,10 +96,21 @@ async function blind() {
 
     await context.sync();
     if (foundCount === 0) {
-      console.log("No instances of NICE CIC style found");
+      console.log("No instances of ", old_style, " style found");
     } else {
-      console.log(`Updated ${foundCount} instances from NICE CIC to NICE blinded style`);
+      console.log(`Updated ${foundCount} instances from ${old_style} to ${new_style} style`);
     }
+    
+    // Save the document as a new file with 'BLINDED' prefix.
+    // Here we use a timestamp to ensure the filename is unique.
+    const newFileName = "BLINDED_" + new Date().toISOString() + ".docx";
+    Office.context.document.saveAsAsync(newFileName, (asyncResult) => {
+      if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+        console.log("Document saved successfully as:", newFileName);
+      } else {
+        console.error("Failed to save document as new file:", asyncResult.error.message);
+      }
+    });
   });
 }
 
