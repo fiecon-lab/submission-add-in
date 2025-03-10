@@ -69,7 +69,7 @@ $(document).ready(function() {
               }
 
               if ($blindSelect.length) {
-                  populateSelect($blindSelect, 'NICE blind');
+                  populateSelect($blindSelect, 'NICE blinded');
               }
 
           } catch (error) {
@@ -444,7 +444,7 @@ $(document).ready(function() {
           if (searchResults.items.length > 0) {
               const targetParagraph = searchResults.items[0];
               // Apply style "NICE Heading 1" to the found paragraph
-              targetParagraph.style = "NICE Heading 1";
+              // targetParagraph.style = "NICE Heading 1";
 
               // Build table data: header row + one row per abbreviation
               const tableData = [["Abbreviation", "Definition"]];
