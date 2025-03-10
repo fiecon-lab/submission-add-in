@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
-  <Id>00000000-0000-0000-0000-000000000000</Id>
+  <Id>8f2c71d9-6a3e-4b02-9d81-5e3f9c0ae724</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>FIECON Labs</ProviderName>
-  <DefaultLocale>en-US</DefaultLocale>
+  <DefaultLocale>en-gb</DefaultLocale>
   <DisplayName DefaultValue="FIECON Submission Assistant"/>
   <Description DefaultValue="A document preparation tool for NICE submissions with blinding and abbreviation features"/>
-  <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>
-  <SupportUrl DefaultValue="https://fiecon-lab.github.io/submission-add-in/"/>
+  <IconUrl DefaultValue="https://fiecon-lab.github.io/submission-add-in/images/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://fiecon-lab.github.io/submission-add-in/images/icon-64.png"/>
+  <SupportUrl DefaultValue="https://fiecon.com/"/>
   <AppDomains>
-    <AppDomain>https://fiecon-lab.github.io</AppDomain>
+    <AppDomain>https://www.fiecon.com/</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Document"/>
@@ -70,16 +70,16 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://localhost:3000/assets/icon-16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://localhost:3000/assets/icon-32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/assets/icon-80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://fiecon-lab.github.io/submission-add-in/images/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://fiecon-lab.github.io/submission-add-in/images/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://fiecon-lab.github.io/submission-add-in/images/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://fiecon-lab.github.io/submission-add-in/"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/index.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://fiecon-lab.github.io/submission-add-in/index.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with Submission Assistant!"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with NICE Submission Assistant!"/>
         <bt:String id="CommandsGroup.Label" DefaultValue="FIECON"/>
         <bt:String id="TaskpaneButton.Label" DefaultValue="Submission Assistant"/>
       </bt:ShortStrings>
