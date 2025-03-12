@@ -81,6 +81,29 @@ $(document).ready(function() {
   // Attach event handlers for buttons
   $("#blind-btn").on("click", () => tryCatch(blind));
   $("#abbrev").on("click", () => tryCatch(findAbbreviations));
+  $("#test").on("click", async () => {
+        console.log("start")
+        const url = "https://cria-api.fiecon.com/api/generate";
+        const apiKey = "0a2e6ef6-4a96-406f-888e-865a8c5a7209";
+    
+        const requestData = {
+        model: "Mistral:7b",
+        prompt: "Hello!",
+        stream: false,
+        };
+        console.log("await response")
+        const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            APIKey: apiKey,
+        },
+        body: JSON.stringify(requestData),
+        });
+    
+        console.log(response);
+        console.log("end...");
+    });
 
   /**
    * Utility function to handle errors consistently
