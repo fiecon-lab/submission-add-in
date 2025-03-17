@@ -17,61 +17,20 @@ $(document).ready(function() {
 
               // Filter styles to match Word's UI display
               const visibleStyles = allStyles.items.filter(style => {
-                  // Only include styles that would typically appear in Word's UI
+                  // Focus on paragraph styles (most common in UI)
                   return (
-                      // Focus on paragraph styles (most common in UI)
                       (style.type === Word.StyleType.paragraph || 
                        style.type === Word.StyleType.character) &&
-                      // Filter out styles that start with special characters
                       !style.nameLocal.startsWith('_') &&
-                      // Include styles that match naming patterns shown in your UI
                       (style.nameLocal.startsWith('NICE') || 
                        style.nameLocal.includes('Heading') ||
                        style.nameLocal.includes('Title') ||
-                       style.builtin) // Include built-in styles
+                       style.builtin)
                   );
               });
 
-              // Function to populate select elements
-              const populateSelect = ($selectElement, defaultStyleName = '') => {
-                  if (!$selectElement.length) {
-                      console.error('Select element not found');
-                      return;
-                  }
-                  
-                  $selectElement.empty();
-                  $selectElement.append(
-                      $('<option>', {
-                          value: '',
-                          text: 'Select a style...'
-                      })
-                  );
-
-                  // Sort styles to match UI order
-                  visibleStyles.sort((a, b) => a.nameLocal.localeCompare(b.nameLocal));
-                  
-                  visibleStyles.forEach(style => {
-                      const $option = $('<option>', {
-                          value: style.nameLocal,
-                          text: style.nameLocal,
-                          selected: style.nameLocal === defaultStyleName
-                      });
-                      $selectElement.append($option);
-                  });
-              };
-
               // Populate select elements
-              const $confidentialSelect = $('#confidential');
-              const $blindSelect = $('#blind');
-
-              if ($confidentialSelect.length) {
-                  populateSelect($confidentialSelect, 'NICE CIC');
-              }
-
-              if ($blindSelect.length) {
-                  populateSelect($blindSelect, 'NICE blinded');
-              }
-
+              populateStyleSelects(visibleStyles);
           } catch (error) {
               console.error('Error:', error);
           }
@@ -81,29 +40,224 @@ $(document).ready(function() {
   // Attach event handlers for buttons
   $("#blind-btn").on("click", () => tryCatch(blind));
   $("#abbrev").on("click", () => tryCatch(findAbbreviations));
-  $("#test").on("click", async () => {
-        console.log("start")
-        const url = "https://cria-api.fiecon.com/api/generate";
-        const apiKey = "0a2e6ef6-4a96-406f-888e-865a8c5a7209";
-    
-        const requestData = {
-        model: "Mistral:7b",
-        prompt: "Hello!",
-        stream: false,
-        };
-        console.log("await response")
-        const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            APIKey: apiKey,
-        },
-        body: JSON.stringify(requestData),
-        });
-    
-        console.log(response);
-        console.log("end...");
-    });
+  $("#abbrev-table").on("click", () => tryCatch(findTableAbbreviations));
+
+  // Store known abbreviations globally
+  const knownAbbreviations = new Set();
+  
+  // Initialize with industry-specific abbreviations
+  const industryAbbreviations = {
+    "HEOR": "Health Economics and Outcomes Research",
+    "HTA": "Health Technology Assessment/Appraisal",
+    "ICER": "Incremental Cost-Effectiveness Ratio",
+    "QALY": "Quality-Adjusted Life Year",
+    "DALY": "Disability-Adjusted Life Year",
+    "CER": "Cost-Effectiveness Ratio",
+    "BIA": "Budget Impact Analysis",
+    "CUA": "Cost-Utility Analysis",
+    "CEA": "Cost-Effectiveness Analysis/Comparative Effectiveness Analysis",
+    "CBA": "Cost-Benefit Analysis",
+    "CMA": "Cost-Minimisation Analysis",
+    "PRO": "Patient-Reported Outcome",
+    "PROM": "Patient-Reported Outcome Measure",
+    "RWE": "Real-World Evidence",
+    "RWD": "Real-World Data",
+    "NICE": "National Institute for Health and Care Excellence (UK)",
+    "SMC": "Scottish Medicines Consortium",
+    "CADTH": "Canadian Agency for Drugs and Technologies in Health",
+    "FDA": "Food and Drug Administration (US)",
+    "EMA": "European Medicines Agency",
+    "MHRA": "Medicines and Healthcare products Regulatory Agency (UK)",
+    "NHS": "National Health Service (UK)",
+    "CMS": "Centers for Medicare & Medicaid Services (US)",
+    "P&R": "Pricing and Reimbursement",
+    "TPP": "Target Product Profile",
+    "VBP": "Value-Based Pricing",
+    "MEA": "Managed Entry Agreement",
+    "PAS": "Patient Access Scheme (UK)",
+    "CED": "Coverage with Evidence Development",
+    "HCP": "Healthcare Professional",
+    "KOL": "Key Opinion Leader",
+    "GPP": "Global Pricing Paper",
+    "SLR": "Systematic Literature Review",
+    "MA": "Meta-Analysis",
+    "NMA": "Network Meta-Analysis",
+    "ITC": "Indirect Treatment Comparison",
+    "MAIC": "Matching-Adjusted Indirect Comparison",
+    "STC": "Simulated Treatment Comparison",
+    "ITT": "Intention-to-Treat",
+    "PP": "Per Protocol",
+    "AE": "Adverse Event",
+    "SAE": "Serious Adverse Event",
+    "RCT": "Randomised Controlled Trial",
+    "SoC": "Standard of Care",
+    "LoT": "Line of Therapy",
+    "QoL": "Quality of Life",
+    "HRQoL": "Health-Related Quality of Life",
+    "DRG": "Diagnosis-Related Group",
+    "HRG": "Healthcare Resource Group",
+    "ALOS": "Average Length of Stay",
+    "MCO": "Managed Care Organization (US)",
+    "PBM": "Pharmacy Benefit Manager (US)",
+    "IDN": "Integrated Delivery Network (US)",
+    "CCG": "Clinical Commissioning Group (UK, historical)",
+    "ICS": "Integrated Care System (UK)",
+    "ICB": "Integrated Care Board (UK)",
+    "T1D": "Type 1 Diabetes",
+    "T2D": "Type 2 Diabetes",
+    "DM": "Diabetes Mellitus",
+    "GDM": "Gestational Diabetes Mellitus",
+    "HbA1c": "Haemoglobin A1c (glycated haemoglobin)",
+    "FPG": "Fasting Plasma Glucose",
+    "NSCLC": "Non-Small Cell Lung Cancer",
+    "SCLC": "Small Cell Lung Cancer",
+    "mCRC": "Metastatic Colorectal Cancer",
+    "HCC": "Hepatocellular Carcinoma",
+    "RCC": "Renal Cell Carcinoma",
+    "BC": "Breast Cancer",
+    "mBC": "Metastatic Breast Cancer",
+    "TNBC": "Triple-Negative Breast Cancer",
+    "PCa": "Prostate Cancer",
+    "mPCa": "Metastatic Prostate Cancer",
+    "NHL": "Non-Hodgkin Lymphoma",
+    "MMy": "Multiple Myeloma",
+    "AML": "Acute Myeloid Leukaemia",
+    "CLL": "Chronic Lymphocytic Leukaemia",
+    "PFS": "Progression-Free Survival",
+    "OS": "Overall Survival",
+    "ORR": "Objective Response Rate",
+    "DOR": "Duration of Response",
+    "CR": "Complete Response",
+    "PR": "Partial Response",
+    "AD": "Alzheimer's Disease",
+    "MCI": "Mild Cognitive Impairment",
+    "PD": "Parkinson's Disease",
+    "MS": "Multiple Sclerosis",
+    "RRMS": "Relapsing-Remitting Multiple Sclerosis",
+    "PPMS": "Primary Progressive Multiple Sclerosis",
+    "SPMS": "Secondary Progressive Multiple Sclerosis",
+    "ALS": "Amyotrophic Lateral Sclerosis",
+    "HD": "Huntington's Disease",
+    "MMSE": "Mini-Mental State Examination",
+    "CVD": "Cardiovascular Disease",
+    "CHF": "Congestive Heart Failure",
+    "MI": "Myocardial Infarction",
+    "ACS": "Acute Coronary Syndrome",
+    "AF": "Atrial Fibrillation",
+    "HTN": "Hypertension",
+    "PAD": "Peripheral Arterial Disease",
+    "MACE": "Major Adverse Cardiovascular Events",
+    "RA": "Rheumatoid Arthritis",
+    "PsA": "Psoriatic Arthritis",
+    "AS": "Ankylosing Spondylitis",
+    "SLE": "Systemic Lupus Erythematosus",
+    "IBD": "Inflammatory Bowel Disease",
+    "CD": "Crohn's Disease",
+    "UC": "Ulcerative Colitis",
+    "NASH": "Non-Alcoholic Steatohepatitis",
+    "COPD": "Chronic Obstructive Pulmonary Disease",
+    "CKD": "Chronic Kidney Disease",
+    "ESRD": "End-Stage Renal Disease",
+    "HIV": "Human Immunodeficiency Virus",
+    "HCV": "Hepatitis C Virus",
+    "HBV": "Hepatitis B Virus",
+    "TB": "Tuberculosis",
+    "CE": "Cost-Effectiveness",
+    "CONSORT": "Consolidated Standards of Reporting Trials",
+    "DPD": "Drug Pricing Database",
+    "ECDRP": "European Commission Decision Reliance Procedure",
+    "EQ-5D": "EuroQol 5-Dimension",
+    "ID": "Identification",
+    "IFU": "Information for Use",
+    "LYG": "Life Years Gained",
+    "NHB": "Net Health Benefit",
+    "PbR": "Payment by Results",
+    "RIS": "Research Information Systems",
+    "STA": "Single Technology Appraisal",
+    "SmPC": "Summary of Product Characteristics",
+    "TA": "Technology Appraisal",
+    "CEM": "Cost-Effectiveness Model",
+    "BIM": "Budget Impact Model",
+    "PSA": "Probabilistic Sensitivity Analysis",
+    "DSA": "Deterministic Sensitivity Analysis",
+    "OWSA": "One-Way Sensitivity Analysis",
+    "TWSA": "Two-Way Sensitivity Analysis",
+    "PSM": "Partitioned Survival Model",
+    "STM": "State Transition Model",
+    "DES": "Discrete Event Simulation",
+    "MM": "Markov Model",
+    "TTO": "Time Trade-Off",
+    "SG": "Standard Gamble",
+    "WTP": "Willingness To Pay",
+    "PSS": "Personal Social Services",
+    "DCE": "Discrete Choice Experiment",
+    "VOI": "Value of Information",
+    "EVPI": "Expected Value of Perfect Information",
+    "EVPPI": "Expected Value of Partial Perfect Information",
+    "EVSI": "Expected Value of Sample Information",
+    "INMB": "Incremental Net Monetary Benefit",
+    "ICUR": "Incremental Cost-Utility Ratio",
+    "GDP": "Gross Domestic Product",
+    "HR": "Hazard Ratio",
+    "OR": "Odds Ratio",
+    "RR": "Relative Risk",
+    "CI": "Confidence Interval",
+    "CrI": "Credible Interval",
+    "AIC": "Akaike Information Criterion",
+    "BIC": "Bayesian Information Criterion",
+    "MSM": "Multi-State Model",
+    "DAM": "Decision Analytic Model",
+    "HUI": "Health Utilities Index",
+    "SF-6D": "Short-Form Six-Dimension",
+    "VAS": "Visual Analogue Scale",
+    "AUC": "Area Under the Curve",
+    "K-M": "Kaplan-Meier",
+    "UK": "United Kingdom",
+    "USA": "United States of America",
+    "US": "United States",
+    "EU": "European Union",
+    "EU-5": "France, Germany, Italy, Spain, United Kingdom",
+    "EU-4": "France, Germany, Italy, Spain",
+    "LATAM": "Latin America",
+    "APAC": "Asia-Pacific",
+    "EMEA": "Europe, Middle East, and Africa",
+    "ROW": "Rest of World",
+    "FR": "France",
+    "DE": "Germany",
+    "IT": "Italy",
+    "ES": "Spain",
+    "JP": "Japan",
+    "CN": "China",
+    "AU": "Australia",
+    "CA": "Canada",
+    "CH": "Switzerland",
+    "SE": "Sweden",
+    "DK": "Denmark",
+    "NO": "Norway",
+    "FI": "Finland",
+    "NL": "Netherlands",
+    "BE": "Belgium",
+    "AT": "Austria",
+    "IE": "Ireland",
+    "PT": "Portugal",
+    "GR": "Greece",
+    "BR": "Brazil",
+    "MX": "Mexico",
+    "RU": "Russia",
+    "IN": "India",
+    "KR": "South Korea",
+    "TW": "Taiwan",
+    "BRICS": "Brazil, Russia, India, China, South Africa",
+    "PBAC": "Pharmaceutical Benefits Advisory Committee (Australia)",
+    "MSAC": "Medical Services Advisory Committee (Australia)",
+    "ICD": "International Classification of Diseases"
+  };
+
+  // Initialize known abbreviations with industry-specific ones
+  Object.keys(industryAbbreviations).forEach(abbr => knownAbbreviations.add(abbr));
+
+  // Also store the definitions for later use
+  const knownDefinitions = new Map(Object.entries(industryAbbreviations));
 
   /**
    * Utility function to handle errors consistently
@@ -120,355 +274,464 @@ $(document).ready(function() {
   }
 
   /**
+   * Helper function to populate style select elements
+   */
+  function populateStyleSelects(styles) {
+      const populateSelect = ($selectElement, defaultStyleName = '') => {
+          if (!$selectElement.length) {
+              console.error('Select element not found');
+              return;
+          }
+          
+          $selectElement.empty();
+          $selectElement.append(
+              $('<option>', {
+                  value: '',
+                  text: 'Select a style...'
+              })
+          );
+
+          // Sort styles to match UI order
+          styles.sort((a, b) => a.nameLocal.localeCompare(b.nameLocal));
+          
+          styles.forEach(style => {
+              const $option = $('<option>', {
+                  value: style.nameLocal,
+                  text: style.nameLocal,
+                  selected: style.nameLocal === defaultStyleName
+              });
+              $selectElement.append($option);
+          });
+      };
+
+      const $confidentialSelect = $('#confidential');
+      const $blindSelect = $('#blind');
+
+      if ($confidentialSelect.length) {
+          populateSelect($confidentialSelect, 'NICE CIC');
+      }
+
+      if ($blindSelect.length) {
+          populateSelect($blindSelect, 'NICE blinded');
+      }
+  }
+
+  /**
+   * Progress indicator utility
+   */
+  const ProgressIndicator = {
+      currentOperation: null,
+
+      start: function(operation) {
+          this.currentOperation = operation;
+          $('#modal-overlay .status-header span').text(operation);
+          $('#modal-progress-bar').css('width', '0%');
+          $('#modal-progress-status').text('Preparing...');
+          $('#modal-overlay').show();
+          $('button, select').prop('disabled', true);
+      },
+
+      update: function(percent, status) {
+          $('#modal-progress-bar').css('width', percent + '%');
+          $('#modal-progress-status').text(status);
+      },
+
+      finish: function(status = 'Complete', delay = 3000) {
+          this.update(100, status);
+          setTimeout(() => {
+              $('#modal-overlay').hide();
+              $('button, select').prop('disabled', false);
+              this.currentOperation = null;
+          }, delay);
+      },
+
+      error: function(errorMessage) {
+          this.update(100, `Error: ${errorMessage}`);
+          setTimeout(() => {
+              $('#modal-overlay').hide();
+              $('button, select').prop('disabled', false);
+              this.currentOperation = null;
+          }, 5000);
+      }
+  };
+
+  /**
    * Function to blind confidential content
    */
   async function blind() {
+      ProgressIndicator.start('Blinding document');
+
       await Word.run(async (context) => {
-          let old_style = $('#confidential').val();
-          let new_style = $('#blind').val();
-
-          // Show progress indicator
-          $('#progress-container').show();
-          updateProgress(0, "Starting style update...");
-          
-          console.log("Starting style update...");
-          let foundCount = 0;
-          const PARAGRAPH_BATCH_SIZE = 20;
-          const CHARACTER_BATCH_SIZE = 100;
-
-          // Get document body
-          const body = context.document.body;
-          body.load("text");
-          await context.sync();
-
-          // Display progress information
-          updateProgress(5, "Document loaded. Starting blinding process...");
-          console.log("Document loaded. Starting blinding process...");
-          
-          // PASS 1: Process paragraphs with the target style
-          updateProgress(10, "PASS 1: Processing paragraphs with style: " + old_style);
-          console.log("PASS 1: Processing paragraphs with style: " + old_style);
-          
-          // Get all paragraphs with the specific style
-          const paragraphsWithStyle = body.paragraphs;
-          paragraphsWithStyle.load("items");
-          await context.sync();
-          
-          const totalParagraphs = paragraphsWithStyle.items.length;
-          updateProgress(15, `Processing ${totalParagraphs} paragraphs in batches of ${PARAGRAPH_BATCH_SIZE}`);
-          console.log(`Processing ${totalParagraphs} paragraphs in batches of ${PARAGRAPH_BATCH_SIZE}`);
-          
-          // Process paragraphs in batches
-          for (let i = 0; i < totalParagraphs; i += PARAGRAPH_BATCH_SIZE) {
-              const batchEnd = Math.min(i + PARAGRAPH_BATCH_SIZE, totalParagraphs);
-              const batchNumber = Math.floor(i/PARAGRAPH_BATCH_SIZE) + 1;
-              const totalBatches = Math.ceil(totalParagraphs/PARAGRAPH_BATCH_SIZE);
+          try {
+              let old_style = $('#confidential').val();
+              let new_style = $('#blind').val();
               
-              // Update progress (15-40% range for Pass 1)
-              const progressPercent = 15 + Math.floor((i / totalParagraphs) * 25);
-              updateProgress(progressPercent, `Processing paragraph batch ${batchNumber}/${totalBatches}`);
-              
-              console.log(`Processing batch ${batchNumber}: paragraphs ${i+1} to ${batchEnd}`);
-              
-              // Load style information for this batch
-              for (let j = i; j < batchEnd; j++) {
-                  paragraphsWithStyle.items[j].load("style, text");
-              }
+              console.log("Starting style update...");
+              let foundCount = 0;
+              const PARAGRAPH_BATCH_SIZE = 20;
+              const CHARACTER_BATCH_SIZE = 100;
+
+              const body = context.document.body;
+              body.load("text");
               await context.sync();
+
+              ProgressIndicator.update(5, "Document loaded. Starting blinding process...");
+              console.log("Document loaded. Starting blinding process...");
               
-              // Process paragraphs with matching style
-              for (let j = i; j < batchEnd; j++) {
-                  const para = paragraphsWithStyle.items[j];
-                  if (para.style === old_style) {
-                      foundCount++;
-                      // Change paragraph style
-                      para.style = new_style;
-                      // Replace text with dashes
-                      const text = para.text;
-                      const dashes = "-".repeat(text.trim().length);
-                      para.insertText(dashes, Word.InsertLocation.replace);
-                  }
-              }
+              // Process paragraphs with the target style
+              foundCount += await processParagraphStyles(context, body, old_style, new_style, PARAGRAPH_BATCH_SIZE);
               
-              // Sync after processing the batch
-              await context.sync();
+              // Process character-level styling
+              foundCount += await processCharacterStyles(context, body, old_style, new_style, CHARACTER_BATCH_SIZE);
+              
+              // Final report
+              const finalMessage = foundCount === 0 
+                  ? "No instances of style " + old_style + " found"
+                  : `Blinding complete. Updated ${foundCount} total instances from ${old_style} to ${new_style} style`;
+              
+              ProgressIndicator.finish(finalMessage);
+              console.log(finalMessage);
+          } catch (error) {
+              console.error("Error during blinding:", error);
+              ProgressIndicator.error("Failed to complete blinding process");
           }
-          
-          updateProgress(40, `PASS 1 complete. Found ${foundCount} paragraphs with style ${old_style}`);
-          console.log(`PASS 1 complete. Found ${foundCount} paragraphs with style ${old_style}`);
-          
-          // PASS 2: Process character-level styling using ranges
-          updateProgress(45, "PASS 2: Processing character-level styling");
-          console.log("PASS 2: Processing character-level styling");
-          
-          // Create ranges for efficient searching
-          const characterStyleCount = await processCharacterStyles(context, body, old_style, new_style, CHARACTER_BATCH_SIZE);
-          foundCount += characterStyleCount;
-          
-          // Final report
-          if (foundCount === 0) {
-              updateProgress(100, "No instances of style " + old_style + " found");
-              console.log("No instances of style " + old_style + " found");
-          } else {
-              updateProgress(100, `Blinding complete. Updated ${foundCount} total instances from ${old_style} to ${new_style} style`);
-              console.log(`Blinding complete. Updated ${foundCount} total instances from ${old_style} to ${new_style} style`);
-          }
-          
-          // Hide progress indicator after 3 seconds
-          setTimeout(() => {
-              $('#progress-container').hide();
-          }, 3000);
       });
   }
-  
+
   /**
-   * Helper function to update the progress indicator
-   * @param {number} percent - Progress percentage (0-100)
-   * @param {string} status - Status message to display
+   * Helper function to process paragraph styles
    */
-  function updateProgress(percent, status) {
-      // Update progress bar
-      $('#progress-bar').css('width', percent + '%');
+  async function processParagraphStyles(context, body, oldStyle, newStyle, batchSize) {
+      let foundCount = 0;
+      ProgressIndicator.update(10, "Processing paragraphs with style: " + oldStyle);
       
-      // Update status text
-      $('#progress-status').text(status);
+      const paragraphsWithStyle = body.paragraphs;
+      paragraphsWithStyle.load("items");
+      await context.sync();
       
-      // Don't force reflow/repaint for every update to avoid performance impact
-      // Only update the DOM, browser will batch render updates
+      const totalParagraphs = paragraphsWithStyle.items.length;
+      ProgressIndicator.update(15, `Processing ${totalParagraphs} paragraphs in batches of ${batchSize}`);
+      
+      for (let i = 0; i < totalParagraphs; i += batchSize) {
+          const batchEnd = Math.min(i + batchSize, totalParagraphs);
+          const batchNumber = Math.floor(i/batchSize) + 1;
+          const totalBatches = Math.ceil(totalParagraphs/batchSize);
+          
+          const progressPercent = 15 + Math.floor((i / totalParagraphs) * 25);
+          ProgressIndicator.update(progressPercent, `Processing paragraph batch ${batchNumber}/${totalBatches}`);
+          
+          for (let j = i; j < batchEnd; j++) {
+              paragraphsWithStyle.items[j].load("style, text");
+          }
+          await context.sync();
+          
+          for (let j = i; j < batchEnd; j++) {
+              const para = paragraphsWithStyle.items[j];
+              if (para.style === oldStyle) {
+                  foundCount++;
+                  para.style = newStyle;
+                  const text = para.text;
+                  const dashes = "-".repeat(text.trim().length);
+                  para.insertText(dashes, Word.InsertLocation.replace);
+              }
+          }
+          
+          await context.sync();
+      }
+      
+      ProgressIndicator.update(40, `Found ${foundCount} paragraphs with style ${oldStyle}`);
+      return foundCount;
   }
-  
+
   /**
-   * Helper function to process character-level styling
-   * @param {Word.RequestContext} context - The request context
-   * @param {Word.Body} body - The document body
-   * @param {string} oldStyle - The style to find
-   * @param {string} newStyle - The style to apply
-   * @param {number} batchSize - Number of items to process per batch
-   * @return {Promise<number>} - Number of styled ranges found and processed
+   * Helper function to process character styles
    */
   async function processCharacterStyles(context, body, oldStyle, newStyle, batchSize) {
       let foundCount = 0;
+      ProgressIndicator.update(45, "Processing character-level styling");
       
-      // Search for all content in the document
       const contentRanges = body.search("*", { matchWildcards: true });
       contentRanges.load("items");
       await context.sync();
       
       const totalRanges = contentRanges.items.length;
-      updateProgress(50, `Found ${totalRanges} content ranges to check for character styling`);
-      console.log(`Found ${totalRanges} content ranges to check for character styling`);
+      ProgressIndicator.update(50, `Found ${totalRanges} content ranges to check for character styling`);
       
-      // Process ranges in batches
       for (let i = 0; i < totalRanges; i += batchSize) {
           const batchEnd = Math.min(i + batchSize, totalRanges);
-          
-          // Calculate progress (50-95% range for Pass 2)
           const progressPercent = 50 + Math.floor((i / totalRanges) * 45);
-          
-          // Reduce console logging frequency - only log every 5 batches or for first/last batch
           const batchNumber = Math.floor(i/batchSize) + 1;
           const totalBatches = Math.ceil(totalRanges/batchSize);
           
-          // Update progress every batch but only log to console occasionally
-          updateProgress(progressPercent, `Processing character styles batch ${batchNumber}/${totalBatches}`);
+          ProgressIndicator.update(progressPercent, `Processing character styles batch ${batchNumber}/${totalBatches}`);
           
-          if (batchNumber === 1 || batchNumber === totalBatches || batchNumber % 5 === 0) {
-              console.log(`Processing character styles batch ${batchNumber}/${totalBatches}: ranges ${i+1} to ${batchEnd}`);
-          }
-          
-          // Load style information for this batch
           for (let j = i; j < batchEnd; j++) {
               contentRanges.items[j].load("text, style, font");
           }
           await context.sync();
           
-          // Process ranges with matching style
           let batchFoundCount = 0;
           for (let j = i; j < batchEnd; j++) {
               const range = contentRanges.items[j];
-              
-              // Check if this range has the target style (either directly or via font)
               if (range.style === oldStyle || (range.font && range.font.style === oldStyle)) {
                   foundCount++;
                   batchFoundCount++;
-                  // Change style
                   range.style = newStyle;
-                  // Replace text with dashes
                   const text = range.text;
                   const dashes = "-".repeat(text.trim().length);
                   range.insertText(dashes, Word.InsertLocation.replace);
               }
           }
           
-          // Sync after processing the batch
           await context.sync();
           
-          // Only log if we found something in this batch
           if (batchFoundCount > 0 && (batchNumber % 5 === 0 || batchNumber === totalBatches)) {
-              console.log(`Found ${batchFoundCount} styled ranges in batch ${batchNumber}`);
-              updateProgress(progressPercent, `Found ${batchFoundCount} styled ranges in batch ${batchNumber}/${totalBatches}`);
+              ProgressIndicator.update(progressPercent, `Found ${batchFoundCount} styled ranges in batch ${batchNumber}/${totalBatches}`);
           }
       }
       
-      updateProgress(95, `PASS 2 complete. Found ${foundCount} ranges with style ${oldStyle}`);
-      console.log(`PASS 2 complete. Found ${foundCount} ranges with style ${oldStyle}`);
+      ProgressIndicator.update(95, `Found ${foundCount} ranges with style ${oldStyle}`);
       return foundCount;
   }
 
   /**
-   * Find definitions for identified abbreviations
-   * @param {string} text - The full document text
-   * @param {string[]} abbreviations - List of identified abbreviations
-   * @return {Object} Map of abbreviations to their definitions
+   * Core abbreviation detection logic
    */
-  function findDefinitions(text, abbreviations) {
-      const definitionMap = {};
+  function detectAbbreviations(text, options = { isTable: false, useKnownAbbreviations: true }) {
+      const abbreviations = new Set();
+      const toExclude = new Set();
+      const contextMap = new Map(); // Track where each abbreviation appears
+      const allPositions = new Map(); // Track all positions of all potential abbreviations
 
-      // Initialize all abbreviations with empty definitions
-      abbreviations.forEach(abbr => {
-          definitionMap[abbr] = "";
-      });
-
-      // Pattern 1: "Full Name (ABBR)" - check if first letters match
-      abbreviations.forEach(abbr => {
-          try {
-              // Look for the pattern: anything followed by the abbreviation in brackets
-              const pattern = new RegExp(`([^(]+)\\(${abbr}\\)`, 'gi'); // Case insensitive search
-              const matches = [];
+      // First, add any known abbreviations found in the text
+      if (options.useKnownAbbreviations) {
+          knownAbbreviations.forEach(known => {
+              const regex = new RegExp(`\\b${known}\\b`, 'g');
               let match;
-
-              // Find all matches
-              while ((match = pattern.exec(text)) !== null) {
-                  matches.push(match);
-              }
-
-              // Check capitalization variations
-              for (const m of matches) {
-                  const beforeBrackets = m[1].trim();
-
-                  // Extract words, filtering out common connecting words
-                  const words = beforeBrackets.split(/[\s-]+/).filter(word =>
-                      word.length > 0 &&
-                      !['and', 'or', 'the', 'of', 'for', 'in', 'on', 'by', 'to', 'with', 'a', 'an'].includes(word.toLowerCase())
-                  );
-
-                  // Get first letter of each word (uppercase for comparison)
-                  const firstLetters = words.map(word => word[0].toUpperCase()).join('');
-
-                  // Check if abbreviation matches the first letters (case insensitive)
-                  if (firstLetters === abbr.toUpperCase()) {
-                      definitionMap[abbr] = beforeBrackets;
-                      break;
+              while ((match = regex.exec(text)) !== null) {
+                  contextMap.set(match.index, known);
+                  if (!allPositions.has(known)) {
+                      allPositions.set(known, []);
                   }
+                  allPositions.get(known).push(match.index);
               }
+          });
+      }
 
-              // Find definitions where words don't match exactly the abbreviation order
-              // If no definition found yet, try a more flexible approach
-              if (!definitionMap[abbr] || definitionMap[abbr] === "") {
-                  const parenthesesPattern = new RegExp(`([^(]{3,100})\\(${abbr}\\)`, 'gi');
-                  let parenthesesMatch;
+      // Find hyphenated abbreviations
+      const hyphenRegex = /\b([A-Z]+)-(\d[A-Z]?)\b/g;
+      let hyphenMatch;
 
-                  while ((parenthesesMatch = parenthesesPattern.exec(text)) !== null) {
-                      const phraseBeforeBrackets = parenthesesMatch[1].trim();
+      while ((hyphenMatch = hyphenRegex.exec(text)) !== null) {
+          const fullMatch = hyphenMatch[0];
+          const beforeHyphen = hyphenMatch[1];
+          toExclude.add(beforeHyphen);
+          contextMap.set(hyphenMatch.index, fullMatch);
+          if (!allPositions.has(fullMatch)) {
+              allPositions.set(fullMatch, []);
+          }
+          allPositions.get(fullMatch).push(hyphenMatch.index);
+      }
 
-                      // Match each abbreviation letter with a word in the phrase
-                      const phraseWords = phraseBeforeBrackets.split(/[\s-]+/).filter(w => w.length > 0);
-                      const abbrLetters = abbr.toUpperCase().split('');
+      // Exclude potential titles only for main document and tables without headers
+      if (!options.isTable || options.isTable && !options.hasHeaders) {
+          const titleRegex = /\b([A-Z]{2,}(\s+[A-Z]{2,}){2,})\b/g;
+          let titleMatch;
+          while ((titleMatch = titleRegex.exec(text)) !== null) {
+              titleMatch[0].split(/\s+/).forEach(word => {
+                  if (word.length > 1) toExclude.add(word);
+              });
+          }
+      }
 
-                      // Try to find a "tight" match of consecutive words
-                      let bestMatchStart = -1;
-                      let bestMatchLength = Infinity;
+      // Common words to exclude
+      const commonWords = ["ACRONYM", "AND", "FOR", "THE", "OF", "IN", "TO",
+          "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K",
+          "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V",
+          "W", "X", "Y", "Z"];
+      commonWords.forEach(word => toExclude.add(word));
 
-                      for (let start = 0; start < phraseWords.length; start++) {
-                          let abbrPos = 0;
-                          let wordPos = start;
+      // Find all potential abbreviations
+      const patterns = [
+          /\b[A-Z][A-Z]+\b/g,                    // Standard acronyms
+          /\b(?:[A-Z](?:[a-z]?[A-Z]){1,}[a-z]?)\b/g,  // Mixed-case
+          /\b(?:[A-Z]\.){2,}[A-Z]?\b/g,         // With periods
+          /\b[A-Z][A-Z0-9-]+\b/g                // With numbers and hyphens
+      ];
 
-                          while (wordPos < phraseWords.length && abbrPos < abbrLetters.length) {
-                              const word = phraseWords[wordPos];
-                              if (word.length > 0 && word[0].toUpperCase() === abbrLetters[abbrPos]) {
-                                  abbrPos++;
-                              }
-                              wordPos++;
-                          }
+      patterns.forEach(pattern => {
+          let match;
+          while ((match = pattern.exec(text)) !== null) {
+              const abbr = match[0];
+              if (toExclude.has(abbr)) continue;
+              if (abbr.length < 2) continue;
+              if (/\d{3,}/.test(abbr)) continue;
+              if (/[a-z]{2,}/.test(abbr)) continue;
 
-                          // If we matched all abbreviation letters
-                          if (abbrPos === abbrLetters.length) {
-                              const matchLength = wordPos - start;
-                              if (matchLength < bestMatchLength) {
-                                  bestMatchStart = start;
-                                  bestMatchLength = matchLength;
-                              }
-                          }
-                      }
-
-                      // If we found a good match
-                      if (bestMatchStart !== -1) {
-                          const relevantWords = phraseWords.slice(bestMatchStart, bestMatchStart + bestMatchLength);
-                          definitionMap[abbr] = relevantWords.join(' ');
-                          break;
-                      }
-                  }
+              // Track this potential abbreviation's position
+              if (!allPositions.has(abbr)) {
+                  allPositions.set(abbr, []);
               }
-          } catch (error) {
-              console.error(`Error processing abbreviation ${abbr}:`, error);
+              allPositions.get(abbr).push(match.index);
           }
       });
 
-      // Pattern 2: "Abbreviations: ABBR, definition; ABBR2, definition2"
-      try {
-          const abbreviationSections = text.match(/Abbreviations:([^.]+)/g) || [];
-
-          abbreviationSections.forEach(section => {
-              // Remove the "Abbreviations:" prefix
-              const content = section.replace(/^Abbreviations:/, '').trim();
-
-              // Split by semicolons
-              const pairs = content.split(';');
-
-              pairs.forEach(pair => {
-                  // Handle both "ABBR, definition" and "ABBR = definition" formats
-                  const pairMatch = pair.match(/^\s*([A-Z0-9-]+)\s*(?:,|=|:)\s*(.+)$/);
-
-                  if (pairMatch) {
-                      const [, abbrFromSection, definition] = pairMatch;
-
-                      // Check if this is one of our identified abbreviations
-                      if (abbreviations.includes(abbrFromSection)) {
-                          definitionMap[abbrFromSection] = definition.trim();
-                      }
+      // Now analyze all found positions to determine valid abbreviations
+      allPositions.forEach((positions, abbr) => {
+          let isValid = true;
+          
+          positions.forEach(pos => {
+              // Check if this position is part of a larger abbreviation
+              contextMap.forEach((existingAbbr, existingPos) => {
+                  if (existingPos <= pos && 
+                      existingPos + existingAbbr.length >= pos + abbr.length &&
+                      existingAbbr !== abbr) {
+                      isValid = false;
                   }
               });
           });
 
-          // Look for exact "XYZ = full definition" patterns
-          const exactDefinitions = text.match(/\b([A-Z][A-Z0-9-]{1,7})\s*(?:=|is|means|:)\s*["']?([^".;:)]+)["']?/g) || [];
-          for (const def of exactDefinitions) {
-              const match = def.match(/\b([A-Z][A-Z0-9-]{1,7})\s*(?:=|is|means|:)\s*["']?([^".;:)]+)["']?/);
-              if (match && match[1] && match[2]) {
-                  const abbr = match[1];
-                  const definition = match[2].trim();
-
-                  if (abbreviations.includes(abbr)) {
-                      definitionMap[abbr] = definition;
+          if (isValid) {
+              if (abbr.endsWith('s') && abbr.length > 2) {
+                  const singular = abbr.slice(0, -1);
+                  if (singular.match(/^[A-Z]+$/)) {
+                      abbreviations.add(singular);
+                      positions.forEach(pos => contextMap.set(pos, singular));
                   }
+              } else {
+                  abbreviations.add(abbr);
+                  positions.forEach(pos => contextMap.set(pos, abbr));
+              }
+          }
+      });
+
+      // Update known abbreviations with new findings
+      if (options.useKnownAbbreviations) {
+          abbreviations.forEach(abbr => knownAbbreviations.add(abbr));
+      }
+
+      return Array.from(abbreviations).sort();
+  }
+
+  /**
+   * Find definitions for identified abbreviations
+   */
+  function findDefinitions(text, abbreviations) {
+      const definitionMap = {};
+      abbreviations.forEach(abbr => {
+          // First check if we have a known definition
+          if (knownDefinitions.has(abbr)) {
+              definitionMap[abbr] = knownDefinitions.get(abbr);
+              return;
+          }
+          definitionMap[abbr] = "";
+      });
+
+      // Pattern 1: "Full Name (ABBR)"
+      abbreviations.forEach(abbr => {
+          const pattern = new RegExp(`([^(]+)\\(${abbr}\\)`, 'gi');
+          const matches = [];
+          let match;
+
+          while ((match = pattern.exec(text)) !== null) {
+              matches.push(match);
+          }
+
+          for (const m of matches) {
+              const beforeBrackets = m[1].trim();
+              const words = beforeBrackets.split(/[\s-]+/).filter(word =>
+                  word.length > 0 &&
+                  !['and', 'or', 'the', 'of', 'for', 'in', 'on', 'by', 'to', 'with', 'a', 'an'].includes(word.toLowerCase())
+              );
+
+              const firstLetters = words.map(word => word[0].toUpperCase()).join('');
+              if (firstLetters === abbr.toUpperCase()) {
+                  definitionMap[abbr] = beforeBrackets;
+                  break;
               }
           }
 
-          // Check for specific patterns like "information for use (IFU)" with exact wording match
-          for (const abbr of abbreviations) {
-              if (!definitionMap[abbr] || definitionMap[abbr] === "") {
-                  // Special case for common abbreviations
-                  if (abbr === "IFU") {
-                      const ifuMatch = text.match(/information\s+for\s+use\s+\(IFU\)/i);
-                      if (ifuMatch) {
-                          definitionMap[abbr] = "information for use";
+          // Try flexible matching if no exact match found
+          if (!definitionMap[abbr]) {
+              const parenthesesPattern = new RegExp(`([^(]{3,100})\\(${abbr}\\)`, 'gi');
+              let parenthesesMatch;
+
+              while ((parenthesesMatch = parenthesesPattern.exec(text)) !== null) {
+                  const phraseBeforeBrackets = parenthesesMatch[1].trim();
+                  const phraseWords = phraseBeforeBrackets.split(/[\s-]+/).filter(w => w.length > 0);
+                  const abbrLetters = abbr.toUpperCase().split('');
+
+                  let bestMatchStart = -1;
+                  let bestMatchLength = Infinity;
+
+                  for (let start = 0; start < phraseWords.length; start++) {
+                      let abbrPos = 0;
+                      let wordPos = start;
+
+                      while (wordPos < phraseWords.length && abbrPos < abbrLetters.length) {
+                          const word = phraseWords[wordPos];
+                          if (word.length > 0 && word[0].toUpperCase() === abbrLetters[abbrPos]) {
+                              abbrPos++;
+                          }
+                          wordPos++;
+                      }
+
+                      if (abbrPos === abbrLetters.length) {
+                          const matchLength = wordPos - start;
+                          if (matchLength < bestMatchLength) {
+                              bestMatchStart = start;
+                              bestMatchLength = matchLength;
+                          }
                       }
                   }
+
+                  if (bestMatchStart !== -1) {
+                      const relevantWords = phraseWords.slice(bestMatchStart, bestMatchStart + bestMatchLength);
+                      definitionMap[abbr] = relevantWords.join(' ');
+                      break;
+                  }
               }
           }
-      } catch (error) {
-          console.error("Error processing abbreviation sections:", error);
+      });
+
+      // Pattern 2: "Abbreviations: ABBR, definition; ABBR2, definition2"
+      const abbreviationSections = text.match(/Abbreviations:([^.]+)/g) || [];
+      abbreviationSections.forEach(section => {
+          const content = section.replace(/^Abbreviations:/, '').trim();
+          const pairs = content.split(';');
+
+          pairs.forEach(pair => {
+              const pairMatch = pair.match(/^\s*([A-Z0-9-]+)\s*(?:,|=|:)\s*(.+)$/);
+              if (pairMatch && abbreviations.includes(pairMatch[1])) {
+                  definitionMap[pairMatch[1]] = pairMatch[2].trim();
+              }
+          });
+      });
+
+      // Pattern 3: "XYZ = full definition"
+      const exactDefinitions = text.match(/\b([A-Z][A-Z0-9-]{1,7})\s*(?:=|is|means|:)\s*["']?([^".;:)]+)["']?/g) || [];
+      for (const def of exactDefinitions) {
+          const match = def.match(/\b([A-Z][A-Z0-9-]{1,7})\s*(?:=|is|means|:)\s*["']?([^".;:)]+)["']?/);
+          if (match && match[1] && match[2] && abbreviations.includes(match[1])) {
+              definitionMap[match[1]] = match[2].trim();
+          }
       }
+
+      // Special cases
+      if (abbreviations.includes("IFU")) {
+          const ifuMatch = text.match(/information\s+for\s+use\s+\(IFU\)/i);
+          if (ifuMatch) {
+              definitionMap["IFU"] = "information for use";
+          }
+      }
+
+      // Normalize capitalization
+      Object.keys(definitionMap).forEach(abbr => {
+          const definition = definitionMap[abbr];
+          if (definition && definition.length > 0) {
+              definitionMap[abbr] = definition.charAt(0).toUpperCase() + definition.slice(1);
+          }
+      });
 
       return definitionMap;
   }
@@ -477,149 +740,134 @@ $(document).ready(function() {
    * Main function to find abbreviations in the document
    */
   async function findAbbreviations() {
+      ProgressIndicator.start('Finding abbreviations');
+
       return Word.run(async (context) => {
-          // Get the document body
-          const body = context.document.body;
-          body.load("text");
-
-          await context.sync();
-
-          // Get the full text content
-          const text = body.text;
-
-          // Create a Set to store unique abbreviations (removes duplicates)
-          const abbreviations = new Set();
-          const toExclude = new Set();
-
-          // First find all hyphenated abbreviations to prevent their parts from being included separately
-          const hyphenRegex = /\b([A-Z]+)-(\d[A-Z]?)\b/g;
-          const hyphenatedAbbreviations = [];
-          let hyphenMatch;
-
-          while ((hyphenMatch = hyphenRegex.exec(text)) !== null) {
-              const fullMatch = hyphenMatch[0];   // Example: "EQ-5D"
-              const beforeHyphen = hyphenMatch[1]; // Example: "EQ"
-
-              hyphenatedAbbreviations.push(fullMatch);
-              toExclude.add(beforeHyphen); // Add the first part to exclusion list
-          }
-
-          // Identify potential titles (consecutive capitalized words)
-          const titleRegex = /\b([A-Z]{2,}(\s+[A-Z]{2,}){2,})\b/g;
-          const potentialTitles = [];
-          let titleMatch;
-
-          while ((titleMatch = titleRegex.exec(text)) !== null) {
-              potentialTitles.push(titleMatch[0]);
-          }
-
-          // Add words from titles to exclusions
-          potentialTitles.forEach(title => {
-              title.split(/\s+/).forEach(word => {
-                  if (word.length > 1) {
-                      toExclude.add(word);
-                  }
-              });
-          });
-
-          // Common words to exclude
-          const commonWords = ["ACRONYM", "AND", "FOR", "THE", "OF", "IN", "TO",
-              "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K",
-              "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V",
-              "W", "X", "Y", "Z"];
-
-          // Add common words to exclusions
-          commonWords.forEach(word => toExclude.add(word));
-
-          // Find standard acronyms (2+ uppercase letters)
-          const acronymMatches = text.match(/\b[A-Z][A-Z]+\b/g) || [];
-
-          // Find mixed-case abbreviations (like CoE, RoI)
-          const mixedCaseMatches = text.match(/\b(?:[A-Z](?:[a-z]?[A-Z]){1,}[a-z]?)\b/g) || [];
-
-          // Find acronyms with periods (U.S.A.)
-          const periodMatches = text.match(/\b(?:[A-Z]\.){2,}[A-Z]?\b/g) || [];
-
-          // Process all potential abbreviations
-          [...acronymMatches, ...mixedCaseMatches, ...periodMatches].forEach(match => {
-              // Skip if in exclusion list
-              if (toExclude.has(match)) return;
-
-              // Ignore single-character matches
-              if (match.length < 2) return;
-
-              // Ignore if it has more than 2 consecutive numbers
-              if (/\d{3,}/.test(match)) return;
-
-              // Ignore if it has more than one lowercase letter in a row
-              if (/[a-z]{2,}/.test(match)) return;
-
-              // Handle plurals (e.g., RCTs -> RCT)
-              if (match.endsWith('s') && match.length > 2) {
-                  const singular = match.slice(0, -1);
-                  if (singular.match(/^[A-Z]+$/)) {
-                      abbreviations.add(singular);
-                      return;
-                  }
-              }
-
-              // Add to set (handles duplicates automatically)
-              abbreviations.add(match);
-          });
-
-          // Add all hyphenated abbreviations to the final set
-          hyphenatedAbbreviations.forEach(abbr => {
-              abbreviations.add(abbr);
-          });
-
-          // Convert to Array and sort alphabetically
-          const sortedAbbreviations = Array.from(abbreviations).sort();
-
-          // Find definitions for each abbreviation
-          const definitions = findDefinitions(text, sortedAbbreviations);
-
-          // Normalize capitalization of definitions
-          Object.keys(definitions).forEach(abbr => {
-              const definition = definitions[abbr];
-              if (definition && definition.length > 0) {
-                  // Capitalize first letter, leave the rest as is
-                  definitions[abbr] = definition.charAt(0).toUpperCase() + definition.slice(1);
-              }
-          });
-
-          // Log the results
-          console.log("Found abbreviations with definitions:");
-          console.log(definitions);
-          console.log(`Total unique abbreviations found: ${sortedAbbreviations.length}`);
-
-          // Search for the paragraph containing "Abbreviations"
-          const searchResults = body.search("Abbreviations", { matchWholeWord: true });
-          searchResults.load("items");
-          await context.sync();
-
-          if (searchResults.items.length > 0) {
-              const targetParagraph = searchResults.items[0];
-              // Apply style "NICE Heading 1" to the found paragraph
-              // targetParagraph.style = "NICE Heading 1";
-
-              // Build table data: header row + one row per abbreviation
-              const tableData = [["Abbreviation", "Definition"]];
-              sortedAbbreviations.forEach(abbr => {
-                  tableData.push([abbr, definitions[abbr]]);
-              });
-
-              // Insert table after the "Abbreviations" paragraph and get the table object
-              const table = targetParagraph.insertTable(tableData.length, 2, Word.InsertLocation.after, tableData);
-              table.load("id");
+          try {
+              const body = context.document.body;
+              body.load("text");
               await context.sync();
 
-              // Apply style "NICE Table text" to the table's range
-              const tableRange = table.getRange();
-              tableRange.style = "NICE Table text";
-          }
+              ProgressIndicator.update(20, "Analyzing document text...");
 
-          await context.sync();
-          return definitions;
+              const text = body.text;
+              // Clear known abbreviations before document-wide scan
+              knownAbbreviations.clear();
+              const abbreviations = detectAbbreviations(text, { 
+                  isTable: false, 
+                  useKnownAbbreviations: true 
+              });
+
+              ProgressIndicator.update(50, "Finding definitions...");
+
+              const definitions = findDefinitions(text, abbreviations);
+
+              console.log("Found abbreviations with definitions:", definitions);
+              console.log(`Total unique abbreviations found: ${abbreviations.length}`);
+
+              ProgressIndicator.update(70, "Creating abbreviations table...");
+
+              const searchResults = body.search("Abbreviations", { matchWholeWord: true });
+              searchResults.load("items");
+              await context.sync();
+
+              if (searchResults.items.length > 0) {
+                  const targetParagraph = searchResults.items[0];
+                  const tableData = [["Abbreviation", "Definition"]];
+                  abbreviations.forEach(abbr => {
+                      tableData.push([abbr, definitions[abbr]]);
+                  });
+
+                  const table = targetParagraph.insertTable(tableData.length, 2, Word.InsertLocation.after, tableData);
+                  table.load("id");
+                  await context.sync();
+
+                  const tableRange = table.getRange();
+                  tableRange.style = "NICE Table text";
+                  await context.sync();
+              }
+
+              ProgressIndicator.finish(`Found ${abbreviations.length} abbreviations`);
+              return definitions;
+          } catch (error) {
+              console.error("Error finding abbreviations:", error);
+              ProgressIndicator.error("Failed to process abbreviations");
+              throw error;
+          }
+      });
+  }
+
+  /**
+   * Function to find abbreviations in tables
+   */
+  async function findTableAbbreviations() {
+      ProgressIndicator.start('Processing tables');
+
+      return Word.run(async (context) => {
+          try {
+              const tables = context.document.body.tables;
+              tables.load("items");
+              await context.sync();
+
+              const totalTables = tables.items.length;
+              let processedTables = 0;
+              
+              for (let i = 0; i < tables.items.length; i++) {
+                  const table = tables.items[i];
+                  processedTables++;
+                  
+                  ProgressIndicator.update(
+                      Math.round((processedTables / totalTables) * 80),
+                      `Processing table ${processedTables} of ${totalTables}`
+                  );
+
+                  if (table.rowCount <= 1) continue;
+
+                  const range = table.getRange();
+                  const afterRange = range.insertParagraph("", Word.InsertLocation.after);
+                  const nextParagraph = afterRange.getNext();
+                  nextParagraph.load("text");
+                  await context.sync();
+                  
+                  afterRange.delete();
+                  await context.sync();
+
+                  const nextParagraphText = nextParagraph.text.trim();
+                  if (nextParagraphText.startsWith("Abbreviations") && 
+                      nextParagraphText !== "Abbreviations" && 
+                      (nextParagraphText.includes("-") || nextParagraphText.includes(";"))) {
+                      continue;
+                  }
+                  
+                  range.load("text");
+                  await context.sync();
+                  
+                  const tableText = range.text;
+                  const hasHeaders = table.rowCount > 1 && tableText.split('\n')[0].toUpperCase() === tableText.split('\n')[0];
+                  const abbreviations = detectAbbreviations(tableText, { 
+                      isTable: true, 
+                      hasHeaders,
+                      useKnownAbbreviations: true 
+                  });
+                  
+                  if (abbreviations.length > 0) {
+                      const paragraph = table.insertParagraph("", Word.InsertLocation.after);
+                      const definitions = findDefinitions(tableText, abbreviations);
+                      
+                      const formattedAbbreviations = "Abbreviations: " + 
+                          abbreviations.map(abbr => `${abbr} - ${definitions[abbr] || ""}`).join("; ");
+                      
+                      paragraph.insertText(formattedAbbreviations, Word.InsertLocation.replace);
+                      paragraph.style = "NICE Footnote";
+                      await context.sync();
+                  }
+              }
+              
+              ProgressIndicator.finish(`Processed ${totalTables} tables`);
+          } catch (error) {
+              console.error("Error scanning tables:", error);
+              ProgressIndicator.error("Failed to process tables");
+          }
       });
   }
 });

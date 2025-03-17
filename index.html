@@ -23,14 +23,12 @@
                 <p class="diclaimer">A table of abbreviations with be added under the "Abbreviations" headline or at the end of the document if the headline is not present.</p>
             </div>
 
-            <div>
-                <input type="checkbox" id="abbrev-checkbox" checked>
-                <label for="abbrev-checkbox">Add missing definitions using Cria</label>
-            </div>
-
             <div class="mt-4">
                 <button id="abbrev" class="btn btn-primary">
-                    <span>Find abbreviations</span>
+                    <span>List all abbreviations</span>
+                </button>
+                <button id="abbrev-table" class="btn btn-outline-primary">
+                    <span>Extract from tables</span>
                 </button>
             </div>
         </div>
@@ -78,5 +76,19 @@
     
     <!-- Custom script -->
     <script type="text/javascript" src="src/script.js"></script>
+
+    <!-- Modal overlay for blocking UI -->
+    <div id="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="status-header">
+                <div class="spinner"></div>
+                <span>Blinding document</span>
+            </div>
+            <div class="progress">
+                <div id="modal-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+            </div>
+            <div id="modal-progress-status" class="small">Preparing...</div>
+        </div>
+    </div>
 </body>
 </html>
