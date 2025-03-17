@@ -127,59 +127,192 @@ $(document).ready(function() {
           let old_style = $('#confidential').val();
           let new_style = $('#blind').val();
 
+          // Show progress indicator
+          $('#progress-container').show();
+          updateProgress(0, "Starting style update...");
+          
           console.log("Starting style update...");
           let foundCount = 0;
+          const PARAGRAPH_BATCH_SIZE = 20;
+          const CHARACTER_BATCH_SIZE = 100;
 
-          // Get all paragraphs
+          // Get document body
           const body = context.document.body;
-          const paragraphs = body.paragraphs;
-          paragraphs.load("text, style");
+          body.load("text");
           await context.sync();
 
-          // Process each paragraph
-          for (let para of paragraphs.items) {
-              if (para.style === old_style) {
-                  foundCount++;
-                  // Change paragraph style
-                  para.style = new_style;
-                  // Replace text with dashes
-                  const text = para.text;
-                  const dashes = "-".repeat(text.trim().length);
-                  para.insertText(dashes, Word.InsertLocation.replace);
-              } else {
-                  // Search within paragraph for styled content
-                  const searchResults = para.search("*", { matchWildcards: true });
-                  searchResults.load(["text", "style", "font"]);
-                  await context.sync();
-                  
-                  for (let result of searchResults.items) {
-                      if (result.style === old_style || result.font.style === old_style) {
-                          foundCount++;
-                          result.style = new_style;
-                          const dashes = "-".repeat(result.text.trim().length);
-                          result.insertText(dashes, Word.InsertLocation.replace);
-                      }
+          // Display progress information
+          updateProgress(5, "Document loaded. Starting blinding process...");
+          console.log("Document loaded. Starting blinding process...");
+          
+          // PASS 1: Process paragraphs with the target style
+          updateProgress(10, "PASS 1: Processing paragraphs with style: " + old_style);
+          console.log("PASS 1: Processing paragraphs with style: " + old_style);
+          
+          // Get all paragraphs with the specific style
+          const paragraphsWithStyle = body.paragraphs;
+          paragraphsWithStyle.load("items");
+          await context.sync();
+          
+          const totalParagraphs = paragraphsWithStyle.items.length;
+          updateProgress(15, `Processing ${totalParagraphs} paragraphs in batches of ${PARAGRAPH_BATCH_SIZE}`);
+          console.log(`Processing ${totalParagraphs} paragraphs in batches of ${PARAGRAPH_BATCH_SIZE}`);
+          
+          // Process paragraphs in batches
+          for (let i = 0; i < totalParagraphs; i += PARAGRAPH_BATCH_SIZE) {
+              const batchEnd = Math.min(i + PARAGRAPH_BATCH_SIZE, totalParagraphs);
+              const batchNumber = Math.floor(i/PARAGRAPH_BATCH_SIZE) + 1;
+              const totalBatches = Math.ceil(totalParagraphs/PARAGRAPH_BATCH_SIZE);
+              
+              // Update progress (15-40% range for Pass 1)
+              const progressPercent = 15 + Math.floor((i / totalParagraphs) * 25);
+              updateProgress(progressPercent, `Processing paragraph batch ${batchNumber}/${totalBatches}`);
+              
+              console.log(`Processing batch ${batchNumber}: paragraphs ${i+1} to ${batchEnd}`);
+              
+              // Load style information for this batch
+              for (let j = i; j < batchEnd; j++) {
+                  paragraphsWithStyle.items[j].load("style, text");
+              }
+              await context.sync();
+              
+              // Process paragraphs with matching style
+              for (let j = i; j < batchEnd; j++) {
+                  const para = paragraphsWithStyle.items[j];
+                  if (para.style === old_style) {
+                      foundCount++;
+                      // Change paragraph style
+                      para.style = new_style;
+                      // Replace text with dashes
+                      const text = para.text;
+                      const dashes = "-".repeat(text.trim().length);
+                      para.insertText(dashes, Word.InsertLocation.replace);
                   }
               }
-          }
-
-          await context.sync();
-          if (foundCount === 0) {
-              console.log("No instances of ", old_style, " style found");
-          } else {
-              console.log(`Updated ${foundCount} instances from ${old_style} to ${new_style} style`);
+              
+              // Sync after processing the batch
+              await context.sync();
           }
           
-          // Save the document as a new file with 'BLINDED' prefix
-          const newFileName = "BLINDED_" + new Date().toISOString() + ".docx";
-          Office.context.document.saveAsAsync(newFileName, (asyncResult) => {
-              if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
-                  console.log("Document saved successfully as:", newFileName);
-              } else {
-                  console.error("Failed to save document as new file:", asyncResult.error.message);
-              }
-          });
+          updateProgress(40, `PASS 1 complete. Found ${foundCount} paragraphs with style ${old_style}`);
+          console.log(`PASS 1 complete. Found ${foundCount} paragraphs with style ${old_style}`);
+          
+          // PASS 2: Process character-level styling using ranges
+          updateProgress(45, "PASS 2: Processing character-level styling");
+          console.log("PASS 2: Processing character-level styling");
+          
+          // Create ranges for efficient searching
+          const characterStyleCount = await processCharacterStyles(context, body, old_style, new_style, CHARACTER_BATCH_SIZE);
+          foundCount += characterStyleCount;
+          
+          // Final report
+          if (foundCount === 0) {
+              updateProgress(100, "No instances of style " + old_style + " found");
+              console.log("No instances of style " + old_style + " found");
+          } else {
+              updateProgress(100, `Blinding complete. Updated ${foundCount} total instances from ${old_style} to ${new_style} style`);
+              console.log(`Blinding complete. Updated ${foundCount} total instances from ${old_style} to ${new_style} style`);
+          }
+          
+          // Hide progress indicator after 3 seconds
+          setTimeout(() => {
+              $('#progress-container').hide();
+          }, 3000);
       });
+  }
+  
+  /**
+   * Helper function to update the progress indicator
+   * @param {number} percent - Progress percentage (0-100)
+   * @param {string} status - Status message to display
+   */
+  function updateProgress(percent, status) {
+      // Update progress bar
+      $('#progress-bar').css('width', percent + '%');
+      
+      // Update status text
+      $('#progress-status').text(status);
+      
+      // Don't force reflow/repaint for every update to avoid performance impact
+      // Only update the DOM, browser will batch render updates
+  }
+  
+  /**
+   * Helper function to process character-level styling
+   * @param {Word.RequestContext} context - The request context
+   * @param {Word.Body} body - The document body
+   * @param {string} oldStyle - The style to find
+   * @param {string} newStyle - The style to apply
+   * @param {number} batchSize - Number of items to process per batch
+   * @return {Promise<number>} - Number of styled ranges found and processed
+   */
+  async function processCharacterStyles(context, body, oldStyle, newStyle, batchSize) {
+      let foundCount = 0;
+      
+      // Search for all content in the document
+      const contentRanges = body.search("*", { matchWildcards: true });
+      contentRanges.load("items");
+      await context.sync();
+      
+      const totalRanges = contentRanges.items.length;
+      updateProgress(50, `Found ${totalRanges} content ranges to check for character styling`);
+      console.log(`Found ${totalRanges} content ranges to check for character styling`);
+      
+      // Process ranges in batches
+      for (let i = 0; i < totalRanges; i += batchSize) {
+          const batchEnd = Math.min(i + batchSize, totalRanges);
+          
+          // Calculate progress (50-95% range for Pass 2)
+          const progressPercent = 50 + Math.floor((i / totalRanges) * 45);
+          
+          // Reduce console logging frequency - only log every 5 batches or for first/last batch
+          const batchNumber = Math.floor(i/batchSize) + 1;
+          const totalBatches = Math.ceil(totalRanges/batchSize);
+          
+          // Update progress every batch but only log to console occasionally
+          updateProgress(progressPercent, `Processing character styles batch ${batchNumber}/${totalBatches}`);
+          
+          if (batchNumber === 1 || batchNumber === totalBatches || batchNumber % 5 === 0) {
+              console.log(`Processing character styles batch ${batchNumber}/${totalBatches}: ranges ${i+1} to ${batchEnd}`);
+          }
+          
+          // Load style information for this batch
+          for (let j = i; j < batchEnd; j++) {
+              contentRanges.items[j].load("text, style, font");
+          }
+          await context.sync();
+          
+          // Process ranges with matching style
+          let batchFoundCount = 0;
+          for (let j = i; j < batchEnd; j++) {
+              const range = contentRanges.items[j];
+              
+              // Check if this range has the target style (either directly or via font)
+              if (range.style === oldStyle || (range.font && range.font.style === oldStyle)) {
+                  foundCount++;
+                  batchFoundCount++;
+                  // Change style
+                  range.style = newStyle;
+                  // Replace text with dashes
+                  const text = range.text;
+                  const dashes = "-".repeat(text.trim().length);
+                  range.insertText(dashes, Word.InsertLocation.replace);
+              }
+          }
+          
+          // Sync after processing the batch
+          await context.sync();
+          
+          // Only log if we found something in this batch
+          if (batchFoundCount > 0 && (batchNumber % 5 === 0 || batchNumber === totalBatches)) {
+              console.log(`Found ${batchFoundCount} styled ranges in batch ${batchNumber}`);
+              updateProgress(progressPercent, `Found ${batchFoundCount} styled ranges in batch ${batchNumber}/${totalBatches}`);
+          }
+      }
+      
+      updateProgress(95, `PASS 2 complete. Found ${foundCount} ranges with style ${oldStyle}`);
+      console.log(`PASS 2 complete. Found ${foundCount} ranges with style ${oldStyle}`);
+      return foundCount;
   }
 
   /**
